@@ -8,7 +8,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { useVector } from "react-native-redash";
-import { LEFT_SWIPER_SPACE, RIGHT_SWIPER_SPACE, WIDTH } from "./constances";
+import { LEFT_SWIPER_SPACE, RIGHT_SWIPER_SPACE, WIDTH } from "./Constances";
 import { SlideProps } from "./Slide";
 import Wave, { Side } from "./Wave";
 

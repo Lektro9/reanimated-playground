@@ -8,7 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Vector } from "react-native-redash";
 import Svg, { Path } from "react-native-svg";
-import { HEIGHT, WIDTH } from "./constances";
+import { HEIGHT, WIDTH } from "./Constances";
 
 export enum Side {
   LEFT,
