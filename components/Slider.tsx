@@ -7,7 +7,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { useVector } from "react-native-redash";
+import { snapPoint, useVector } from "react-native-redash";
 import { LEFT_SWIPER_SPACE, RIGHT_SWIPER_SPACE, WIDTH } from "./Constances";
 import { SlideProps } from "./Slide";
 import Wave, { Side } from "./Wave";
@@ -42,6 +42,17 @@ const Slider = ({ index, setIndex, children, prev, next }: SliderProps) => {
       } else if (activeSide.value === Side.RIGHT) {
         right.x.value = WIDTH - x;
         right.y.value = y;
+      }
+    },
+    onEnd: ({ x, velocityX, velocityY }) => {
+      if (activeSide.value === Side.LEFT) {
+        const snapPoints = [LEFT_SWIPER_SPACE, WIDTH];
+        const dest = snapPoint(x, velocityX, snapPoints);
+        left.x.value = withSpring(dest, { velocity: velocityX });
+      } else if (activeSide.value === Side.RIGHT) {
+        const snapPoints = [WIDTH - RIGHT_SWIPER_SPACE, 0];
+        const dest = snapPoint(x, velocityX, snapPoints);
+        right.x.value = withSpring(WIDTH - dest, { velocity: -velocityX });
       }
     },
   });
