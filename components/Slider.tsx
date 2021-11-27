@@ -2,13 +2,19 @@ import React, { ReactElement, useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { PanGestureHandler } from "react-native-gesture-handler";
 import Animated, {
+  runOnJS,
   useAnimatedGestureHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
 import { snapPoint, useVector } from "react-native-redash";
-import { LEFT_SWIPER_SPACE, RIGHT_SWIPER_SPACE, WIDTH } from "./Constances";
+import {
+  HEIGHT,
+  MAX_SWIPER_SPACE,
+  MIN_SWIPER_SPACE,
+  WIDTH,
+} from "./Constances";
 import { SlideProps } from "./Slide";
 import Wave, { Side } from "./Wave";
 
@@ -21,15 +27,19 @@ export interface SliderProps {
 }
 
 const Slider = ({ index, setIndex, children, prev, next }: SliderProps) => {
+  const hasPrev = !!prev;
+  const hasNext = !!next;
   const activeSide = useSharedValue(Side.LEFT);
-  const left = useVector();
-  const right = useVector();
+  const left = useVector(0, HEIGHT / 2);
+  const right = useVector(0, HEIGHT / 2);
+  const isTransingLeft = useSharedValue(false);
+  const isTransingRight = useSharedValue(false);
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: ({ x }) => {
-      if (x < LEFT_SWIPER_SPACE) {
+      if (x < MAX_SWIPER_SPACE && hasPrev) {
         activeSide.value = Side.LEFT;
-      } else if (x > WIDTH - RIGHT_SWIPER_SPACE) {
+      } else if (x > WIDTH - MAX_SWIPER_SPACE && hasNext) {
         activeSide.value = Side.RIGHT;
       } else {
         activeSide.value = Side.NONE;
@@ -37,30 +47,62 @@ const Slider = ({ index, setIndex, children, prev, next }: SliderProps) => {
     },
     onActive: ({ x, y }) => {
       if (activeSide.value === Side.LEFT) {
-        left.x.value = x;
+        left.x.value = Math.max(x, MIN_SWIPER_SPACE);
         left.y.value = y;
       } else if (activeSide.value === Side.RIGHT) {
-        right.x.value = WIDTH - x;
+        right.x.value = Math.max(WIDTH - x, MIN_SWIPER_SPACE);
         right.y.value = y;
       }
     },
     onEnd: ({ x, velocityX, velocityY }) => {
       if (activeSide.value === Side.LEFT) {
-        const snapPoints = [LEFT_SWIPER_SPACE, WIDTH];
+        const snapPoints = [MIN_SWIPER_SPACE, WIDTH];
         const dest = snapPoint(x, velocityX, snapPoints);
-        left.x.value = withSpring(dest, { velocity: velocityX });
+        isTransingLeft.value = dest === WIDTH;
+        left.y.value = withSpring(HEIGHT / 2);
+        left.x.value = withSpring(
+          dest,
+          {
+            velocity: velocityX,
+            overshootClamping: isTransingLeft.value ? true : false,
+            restSpeedThreshold: isTransingLeft.value ? 100 : 0.01,
+            restDisplacementThreshold: isTransingLeft.value ? 100 : 0.01,
+          },
+          () => {
+            if (isTransingLeft.value) {
+              runOnJS(setIndex)(index - 1);
+            }
+          }
+        );
       } else if (activeSide.value === Side.RIGHT) {
-        const snapPoints = [WIDTH - RIGHT_SWIPER_SPACE, 0];
+        const snapPoints = [WIDTH - MIN_SWIPER_SPACE, 0];
         const dest = snapPoint(x, velocityX, snapPoints);
-        right.x.value = withSpring(WIDTH - dest, { velocity: -velocityX });
+        isTransingRight.value = dest === 0;
+        right.y.value = withSpring(HEIGHT / 2);
+        right.x.value = withSpring(
+          WIDTH - dest,
+          {
+            velocity: -velocityX,
+            overshootClamping: isTransingRight.value ? true : false,
+            restSpeedThreshold: isTransingRight.value ? 100 : 0.01,
+            restDisplacementThreshold: isTransingRight.value ? 100 : 0.01,
+          },
+          () => {
+            if (isTransingRight.value) {
+              runOnJS(setIndex)(index + 1);
+            }
+          }
+        );
       }
     },
   });
 
   useEffect(() => {
-    right.x.value = withSpring(RIGHT_SWIPER_SPACE);
-    left.x.value = withSpring(LEFT_SWIPER_SPACE);
-  }, []);
+    right.x.value = 0;
+    left.x.value = 0;
+    right.x.value = withSpring(MIN_SWIPER_SPACE);
+    left.x.value = withSpring(MIN_SWIPER_SPACE);
+  }, [index, left, right]);
 
   const leftStyle = useAnimatedStyle(() => ({
     zIndex: activeSide.value === Side.LEFT ? 100 : 0,
@@ -72,14 +114,18 @@ const Slider = ({ index, setIndex, children, prev, next }: SliderProps) => {
         {children}
         {prev && (
           <Animated.View style={[StyleSheet.absoluteFill, leftStyle]}>
-            <Wave side={Side.LEFT} position={left}>
+            <Wave side={Side.LEFT} position={left} isTransing={isTransingLeft}>
               {prev}
             </Wave>
           </Animated.View>
         )}
         {next && (
           <Animated.View style={StyleSheet.absoluteFill}>
-            <Wave side={Side.RIGHT} position={right}>
+            <Wave
+              side={Side.RIGHT}
+              position={right}
+              isTransing={isTransingRight}
+            >
               {next}
             </Wave>
           </Animated.View>
