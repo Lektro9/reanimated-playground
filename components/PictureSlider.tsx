@@ -38,7 +38,7 @@ const PictureSlider = ({ pics, rotation }: PictureSliderProps) => {
             style={{
               width: WIDTH - 40,
               height: undefined,
-              backgroundColor: "red",
+              backgroundColor: "transparent",
             }}
             resizeMode="contain"
           />

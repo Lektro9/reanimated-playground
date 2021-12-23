@@ -6,7 +6,7 @@ const Background = ({ children }) => {
     <View style={[StyleSheet.absoluteFill]}>
       <ImageBackground
         style={StyleSheet.absoluteFill}
-        source={require("../assets/background.png")}
+        source={require("../assets/bgs/" + "thorma" + ".png")}
         resizeMode={"stretch"}
       >
         {children}

@@ -1,19 +1,15 @@
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
-  Text,
   View,
-  Image,
   Dimensions,
   ImageBackground,
   ImageSourcePropType,
 } from "react-native";
 import { PanGestureHandlerGestureEvent } from "react-native-gesture-handler";
 import {
-  interpolate,
-  runOnJS,
   useAnimatedGestureHandler,
   useSharedValue,
 } from "react-native-reanimated";
@@ -26,22 +22,22 @@ const WIDTH = Dimensions.get("screen").width;
 const HEIGHT = Dimensions.get("screen").height;
 
 const ROTATION_THROTTLE = 400;
-const ANIMATION_THROTTLE = 300;
 export const CRANK_WIDTH = 150;
 export const CRANK_HEIGHT = 150;
 const FRAME_HEIGHT = HEIGHT < 668 ? HEIGHT / 2 : HEIGHT / 2.5;
+export const DIR_PATH = "thorma";
 
 export type pictureType = {
   picPath: ImageSourcePropType;
 };
 
 const myPics: pictureType[] = [
-  { picPath: require("./assets/wir.jpg") },
-  { picPath: require("./assets/2.jpg") },
-  { picPath: require("./assets/3.jpg") },
-  { picPath: require("./assets/4.jpg") },
-  { picPath: require("./assets/5.jpg") },
-  { picPath: require("./assets/6.jpg") },
+  { picPath: require("./assets/" + DIR_PATH + "/1.jpg") },
+  { picPath: require("./assets/" + DIR_PATH + "/2.jpg") },
+  { picPath: require("./assets/" + DIR_PATH + "/3.jpg") },
+  { picPath: require("./assets/" + DIR_PATH + "/4.jpg") },
+  { picPath: require("./assets/" + DIR_PATH + "/5.jpg") },
+  { picPath: require("./assets/" + DIR_PATH + "/6.jpg") },
 ];
 
 const rotationLimit = (myPics.length - 1) * 360;
