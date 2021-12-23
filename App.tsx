@@ -14,6 +14,7 @@ import {
   useSharedValue,
 } from "react-native-reanimated";
 import AllTheLotties from "./components/AllTheLotties";
+import AllTheLottiesThorma from "./components/AllTheLottiesThorma";
 import Background from "./components/Background";
 import Crank from "./components/Crank";
 import PictureSlider from "./components/PictureSlider";
@@ -92,7 +93,15 @@ export default function App() {
           </View>
         </Background>
       </View>
-      <AllTheLotties progress={rotation} rotationLimit={rotationLimit} />
+      {DIR_PATH === "thorma" ? (
+        <AllTheLottiesThorma
+          progress={rotation}
+          rotationLimit={rotationLimit}
+        />
+      ) : (
+        <AllTheLotties progress={rotation} rotationLimit={rotationLimit} />
+      )}
+
       <Crank gestureHandler={gestureHandler} rotation={rotation} />
     </View>
   );
