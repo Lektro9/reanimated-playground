@@ -1,108 +1,149 @@
-import { useFonts } from "expo-font";
-import { StatusBar } from "expo-status-bar";
-import React from "react";
-import {
-  StyleSheet,
-  View,
-  Dimensions,
-  ImageBackground,
-  ImageSourcePropType,
-} from "react-native";
-import { PanGestureHandlerGestureEvent } from "react-native-gesture-handler";
-import {
-  useAnimatedGestureHandler,
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, View, Image, Text, Pressable } from "react-native";
+import Animated, {
+  useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withSpring,
 } from "react-native-reanimated";
-import AllTheLotties from "./components/AllTheLotties";
-import AllTheLottiesThorma from "./components/AllTheLottiesThorma";
-import Background from "./components/Background";
-import Crank from "./components/Crank";
-import PictureSlider from "./components/PictureSlider";
+import Heart from "./components/Heart";
+import { Camera } from "expo-camera";
+import { useFonts } from "expo-font";
+import LottieView from "lottie-react-native";
+import { Audio } from "expo-av";
 
-const WIDTH = Dimensions.get("screen").width;
-const HEIGHT = Dimensions.get("screen").height;
-
-const ROTATION_THROTTLE = 400;
-export const CRANK_WIDTH = 150;
-export const CRANK_HEIGHT = 150;
-const FRAME_HEIGHT = HEIGHT < 668 ? HEIGHT / 2 : HEIGHT / 2.5;
-export const DIR_PATH = "thorma";
-
-export type pictureType = {
-  picPath: ImageSourcePropType;
+const colors = {
+  red: "#b11d4d",
+  pink: "#fd6fa0",
+  purple: "#e986a3",
+  blue: "#e6f5f8",
+  green: "#81a04a",
 };
 
-const myPics: pictureType[] = [
-  { picPath: require("./assets/" + DIR_PATH + "/1.jpg") },
-  { picPath: require("./assets/" + DIR_PATH + "/2.jpg") },
-  { picPath: require("./assets/" + DIR_PATH + "/3.jpg") },
-  { picPath: require("./assets/" + DIR_PATH + "/4.jpg") },
-  { picPath: require("./assets/" + DIR_PATH + "/5.jpg") },
-  { picPath: require("./assets/" + DIR_PATH + "/6.jpg") },
-];
-
-const rotationLimit = (myPics.length - 1) * 360;
 export default function App() {
+  const [hasPermission, setHasPermission] = useState(false);
+  const [picture, setPicture] = useState("");
+  const [sound, setSound] = useState<Audio.Sound>(null);
+  const camera = useRef<Camera>(null);
+  const lottieAnim = useRef<LottieView>(null);
+  const animation = useSharedValue(1);
   const [loaded] = useFonts({
     Handwritten: require("./assets/SignPainterHouseScriptRegular.ttf"),
   });
 
-  const rotation = useSharedValue(0);
-  const animationProgress = useSharedValue(0);
+  async function playSound() {
+    console.log("Loading Sound");
+    const { sound } = await Audio.Sound.createAsync(
+      require("./assets/saxo.mp3")
+    );
+    setSound(sound);
 
-  const gestureHandler =
-    useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
-      onActive: (event) => {
-        let roundedTransX = Math.round(event.velocityX);
-        let roundedTransY = Math.round(event.velocityY);
-        if (event.y >= CRANK_HEIGHT / 2) {
-          roundedTransX = -roundedTransX;
-        }
-        if (event.x <= CRANK_WIDTH / 2) {
-          roundedTransY = -roundedTransY;
-        }
+    console.log("Playing Sound");
+    await sound.setIsLoopingAsync(true);
+    await sound.playAsync();
+  }
 
-        rotation.value += (roundedTransX + roundedTransY) / ROTATION_THROTTLE;
+  useEffect(() => {
+    if (picture) {
+      animation.value = withRepeat(withSpring(1.2), 0, true);
+      lottieAnim.current?.play();
+      playSound();
+    }
+  }, [picture]);
 
-        if (rotation.value > rotationLimit) {
-          rotation.value = rotationLimit;
-        }
-        if (rotation.value < 0) {
-          rotation.value = 0;
-        }
-      },
-    });
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === "granted");
+    })();
+  }, []);
 
+  useEffect(() => {
+    return sound
+      ? () => {
+          console.log("Unloading Sound");
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
+
+  const animatedStyles = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: animation.value }],
+    };
+  });
   if (!loaded) {
     return null;
   }
+  if (hasPermission === null) {
+    return <View />;
+  }
+  if (hasPermission === false) {
+    return (
+      <View>
+        <Text style={styles.font}>Kamera nicht zugelassen.</Text>
+      </View>
+    );
+  }
+
+  const takePictureAndRender = () => {
+    camera.current?.takePictureAsync().then((data) => {
+      setPicture(data.uri);
+    });
+  };
 
   return (
-    <View style={StyleSheet.absoluteFill}>
-      <View style={styles.container}>
-        <StatusBar translucent style={"light"} />
-        <Background>
-          <View style={styles.container}>
-            <PictureSlider pics={myPics} rotation={rotation} />
-            <ImageBackground
-              style={styles.frame}
-              source={require("./assets/rahmen.png")}
-              resizeMode={"stretch"}
-            ></ImageBackground>
-            <View style={styles.bottomSection}></View>
+    <View style={[StyleSheet.absoluteFill]}>
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.pink }]}
+      />
+      <Animated.View style={[styles.container, animatedStyles]}>
+        <Heart>
+          {picture ? (
+            <Image source={{ uri: picture }} style={styles.photo}></Image>
+          ) : (
+            <Camera
+              ref={camera}
+              style={styles.tinyLogo}
+              type={Camera.Constants.Type.front}
+              ratio="16:9"
+            ></Camera>
+          )}
+        </Heart>
+      </Animated.View>
+      <LottieView
+        ref={lottieAnim}
+        source={require("./assets/flyingH.json")}
+        autoPlay={false}
+        speed={1}
+        style={StyleSheet.absoluteFill}
+        autoSize={false}
+        resizeMode={"cover"}
+      />
+      {picture ? (
+        <View style={StyleSheet.absoluteFill}>
+          <View style={styles.topTextContainer}>
+            <Text style={styles.font}>Тасячик 😘</Text>
           </View>
-        </Background>
-      </View>
-      {DIR_PATH === "thorma" ? (
-        <AllTheLottiesThorma
-          progress={rotation}
-          rotationLimit={rotationLimit}
-        />
+          <View style={styles.bottomTextContainer}>
+            <Text style={styles.font}>Sei mein Valentine!</Text>
+          </View>
+        </View>
       ) : (
-        <AllTheLotties progress={rotation} rotationLimit={rotationLimit} />
+        <View style={StyleSheet.absoluteFill}>
+          <View style={styles.topTextContainer}>
+            <Text style={styles.font}>Erstelle ein Foto mit mir</Text>
+          </View>
+          <View style={styles.bottomTextContainer}>
+            <Text style={styles.font}></Text>
+          </View>
+        </View>
       )}
 
-      <Crank gestureHandler={gestureHandler} rotation={rotation} />
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={takePictureAndRender}
+      ></Pressable>
     </View>
   );
 }
@@ -110,16 +151,31 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  frame: {
-    position: "absolute",
-    top: 10,
-    height: FRAME_HEIGHT,
-    width: WIDTH - 20,
   },
   bottomSection: {
     flex: 1,
+  },
+  tinyLogo: {
+    flex: 1,
+    width: "110%",
+  },
+  photo: {
+    flex: 1,
+    width: "100%",
+  },
+  font: {
+    fontFamily: "Handwritten",
+    fontSize: 42,
+    lineHeight: 60,
+  },
+  topTextContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bottomTextContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
